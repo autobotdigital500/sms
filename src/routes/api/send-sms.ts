@@ -129,6 +129,6 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       status: 'Enviado'
     });
 
-    const result = await response.json();
+    const result = response ? await response.json() : {};
     return { success: true, data: result };
   });

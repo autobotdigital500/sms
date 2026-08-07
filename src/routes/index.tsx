@@ -57,7 +57,7 @@ function Index() {
   const [bulkText, setBulkText] = useState("");
   const [parsedNumbers, setParsedNumbers] = useState<string[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [bulkDelay, setBulkDelay] = useState<number>(0.6);
+  const [bulkDelay, setBulkDelay] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Common state
@@ -716,9 +716,9 @@ function Index() {
                               <input 
                                 type="number" 
                                 min="0" 
-                                step="0.1"
+                                step="1"
                                 value={bulkDelay}
-                                onChange={(e) => setBulkDelay(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => setBulkDelay(parseInt(e.target.value) || 0)}
                                 className="w-full rounded-2xl border border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50 p-4 text-center text-xl font-bold transition-all focus:border-blue-500 focus:bg-white dark:bg-[#0b1324] focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-gray-900 dark:text-white"
                               />
                             </div>

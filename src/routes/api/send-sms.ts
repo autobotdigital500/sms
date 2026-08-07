@@ -18,16 +18,19 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Variáveis de ambiente não configuradas no servidor.');
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Create authenticated client
+    const supabaseWithAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
 
     // Verify user token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser(token);
     if (authError || !user) {
       throw new Error('Sessão inválida ou expirada.');
     }
 
     // Check balance
-    const { data: credits, error: creditsError } = await supabase
+    const { data: credits, error: creditsError } = await supabaseWithAuth
       .from('user_credits')
       .select('balance')
       .eq('user_id', user.id)
@@ -60,12 +63,7 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Falha ao enviar SMS pela Zernio.');
     }
 
-    // Deduct credit securely via RPC (uses the user's token implicitly via Supabase client, but we must pass the token to the client)
-    // Actually, createClient creates a generic anon client. We must set the session or pass the JWT!
-    const supabaseWithAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${token}` } }
-    });
-
+    // Deduct credit securely via RPC
     const { data: deductResult, error: deductError } = await supabaseWithAuth.rpc('deduct_credit', { amount: 1 });
     
     if (deductError || !deductResult) {

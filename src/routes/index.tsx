@@ -20,7 +20,8 @@ import {
   Moon,
   Sun,
   CreditCard,
-  Wallet
+  Wallet,
+  XCircle
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ function Index() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [bulkDelay, setBulkDelay] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cancelDispatchRef = useRef(false);
   
   // Common state
   const [message, setMessage] = useState("");
@@ -442,11 +444,17 @@ function Index() {
       } else {
         // Real-time tracking loop
         setDispatchProgress({ total: parsedNumbers.length, current: 0, success: 0, failed: 0, active: true });
+        cancelDispatchRef.current = false;
         
         let successCount = 0;
         let failedCount = 0;
 
         for (let i = 0; i < parsedNumbers.length; i++) {
+          if (cancelDispatchRef.current) {
+            toast.error("Disparo cancelado pelo usuário.");
+            break;
+          }
+
           const num = parsedNumbers[i];
           if (!num) continue;
           
@@ -782,6 +790,13 @@ function Index() {
                                 <p className="text-xl font-bold text-red-500">{dispatchProgress.failed}</p>
                               </div>
                             </div>
+
+                            <button 
+                              onClick={() => { cancelDispatchRef.current = true; }}
+                              className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold py-2.5 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                            >
+                              <XCircle size={18} /> Cancelar Disparo
+                            </button>
                           </div>
                         ) : (
                           <button 

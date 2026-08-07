@@ -40,7 +40,8 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Saldo insuficiente. Por favor, adicione créditos.');
     }
 
-    const ZERNIO_SENDER_ID = process.env['ZERNIO_SENDER_ID'] || 'Autobot';
+    const senderIdsEnv = process.env['ZERNIO_SENDER_IDS'] || process.env['ZERNIO_SENDER_ID'] || 'Autobot';
+    const senderIds = senderIdsEnv.split(',').map(id => id.trim()).filter(Boolean);
 
     const cleanNumber = to.replace(/\D/g, '');
 
@@ -66,30 +67,48 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
 
     const cleanMessage = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    const response = await fetch('https://api.zernio.com/v1/sms/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Bearer ${ZERNIO_API_TOKEN}`
-      },
-      body: JSON.stringify({
-        from: ZERNIO_SENDER_ID,
-        to: cleanNumber, // Limpa a máscara
-        text: cleanMessage
-      })
-    });
+    let response: Response | null = null;
+    let sendSuccess = false;
+    let errorData = null;
+
+    for (const senderId of senderIds) {
+      response = await fetch('https://api.zernio.com/v1/sms/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': `Bearer ${ZERNIO_API_TOKEN}`
+        },
+        body: JSON.stringify({
+          from: senderId,
+          to: cleanNumber, // Limpa a máscara
+          text: cleanMessage
+        })
+      });
+
+      if (response.ok) {
+        sendSuccess = true;
+        break; // Sucesso! Sai do loop e não tenta o próximo.
+      } else {
+        errorData = await response.json().catch(() => ({}));
+        console.warn(`Zernio API falhou com Sender ID ${senderId}:`, errorData);
+        // Se for erro de número inválido (ex: 400), não tentamos os outros IDs, pois o erro é no destinatário.
+        if (response.status === 400) {
+          break; 
+        }
+        // Se for 403/429 (limite diário excedido ou rate limit), o loop continua e tenta o próximo Sender ID automaticamente!
+      }
+    }
 
     // Insert history on failure
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Erro na API da Zernio:', errorData);
+    if (!sendSuccess) {
+      console.error('Falha definitiva na API da Zernio após tentar Sender IDs:', errorData);
       
       await supabaseWithAuth.from('message_history').insert({
         user_id: user.id,
         to_number: to,
         message: cleanMessage,
         status: 'Falha',
-        error_message: 'Falha ao enviar SMS pela Zernio.'
+        error_message: 'Falha ao enviar SMS pela Zernio (Limites excedidos ou erro na API).'
       });
       
       throw new Error('Falha ao enviar SMS pela Zernio.');

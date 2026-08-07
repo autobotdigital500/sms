@@ -847,7 +847,14 @@ function Index() {
               <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Histórico de Envios</h1>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2 flex items-center gap-3">
+                      Histórico de Envios
+                      {history.length > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-3 py-1 text-sm font-medium text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
+                          Total: {history.filter(h => h.status === 'Enviado').length} enviados
+                        </span>
+                      )}
+                    </h1>
                     <p className="text-gray-500 dark:text-slate-400 text-lg">Acompanhe os disparos recentes e os status de entrega.</p>
                   </div>
                   <div className="flex items-center gap-3">

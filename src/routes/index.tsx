@@ -838,7 +838,7 @@ function Index() {
                       </li>
                     </ul>
                     <a 
-                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Básico de 1.000 SMS.`)}`}
+                      href={`https://wa.me/552139509590?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Básico de 1.000 SMS.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full block text-center bg-gray-900 hover:bg-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-colors"
@@ -877,7 +877,7 @@ function Index() {
                       </li>
                     </ul>
                     <a 
-                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Profissional de 5.000 SMS.`)}`}
+                      href={`https://wa.me/552139509590?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Profissional de 5.000 SMS.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)]"
@@ -913,7 +913,7 @@ function Index() {
                       </li>
                     </ul>
                     <a 
-                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Elite de 10.000 SMS.`)}`}
+                      href={`https://wa.me/552139509590?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Elite de 10.000 SMS.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full block text-center bg-gray-900 hover:bg-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-colors"

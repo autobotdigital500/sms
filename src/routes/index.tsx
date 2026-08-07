@@ -57,6 +57,7 @@ function Index() {
   const [bulkText, setBulkText] = useState("");
   const [parsedNumbers, setParsedNumbers] = useState<string[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [bulkDelay, setBulkDelay] = useState<number>(0.6);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Common state
@@ -463,8 +464,8 @@ function Index() {
           
           setDispatchProgress({ total: parsedNumbers.length, current: i + 1, success: successCount, failed: failedCount, active: true });
           
-          // Animação de progresso suave e simulação de delay de processamento (ou real throttling)
-          await new Promise(r => setTimeout(r, 600));
+          // Animação de progresso suave e controle de rate limiting da API
+          await new Promise(r => setTimeout(r, bulkDelay * 1000));
         }
 
         toast.success(
@@ -703,6 +704,32 @@ function Index() {
                             />
                           </div>
                         </div>
+
+                        {/* Delay Config */}
+                        {sendMode === "bulk" && (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300">
+                                Intervalo entre mensagens (Segundos)
+                              </label>
+                              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                {bulkDelay.toFixed(1)}s
+                              </span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="5" 
+                              step="0.1"
+                              value={bulkDelay}
+                              onChange={(e) => setBulkDelay(parseFloat(e.target.value))}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700 accent-blue-600"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-slate-400">
+                              Valores muito baixos podem causar bloqueio temporário (Rate Limit) pelas operadoras.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Right Column: Message & Action */}

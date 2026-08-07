@@ -112,24 +112,14 @@ function Index() {
     setIsSubmittingAuth(true);
     
     try {
-      if (authMode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success("Cadastro realizado! Por favor faça o login.");
-        setAuthMode("login");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success("Login realizado com sucesso!");
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Erro na autenticação");
+      toast.error(error.message || "Erro na autenticação. Verifique seu e-mail e senha.");
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -252,18 +242,12 @@ function Index() {
                 disabled={isSubmittingAuth}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg mt-6 shadow-[0_0_20px_rgba(59,130,246,0.25)] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:hover:bg-blue-500"
               >
-                {isSubmittingAuth ? <Loader2 className="animate-spin" size={18} /> : (authMode === "login" ? "Entrar no sistema" : "Criar conta corporativa")}
+                {isSubmittingAuth ? <Loader2 className="animate-spin" size={18} /> : "Entrar no sistema"}
               </button>
             </form>
             
             <div className="mt-8 text-center text-xs text-slate-500 flex flex-col items-center gap-4">
               <p>Ambiente protegido • Conexão criptografada</p>
-              
-              {authMode === "login" ? (
-                <button onClick={() => setAuthMode("signup")} className="text-slate-400 hover:text-white transition-colors underline decoration-slate-600 underline-offset-4">Criar uma conta</button>
-              ) : (
-                <button onClick={() => setAuthMode("login")} className="text-slate-400 hover:text-white transition-colors underline decoration-slate-600 underline-offset-4">Voltar ao login</button>
-              )}
             </div>
           </div>
         </div>

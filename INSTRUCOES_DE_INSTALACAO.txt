@@ -1,0 +1,130 @@
+=============================================================
+GUIA DE INSTALAÇÃO - PAINEL SMS (CÓDIGO FONTE)
+=============================================================
+
+Parabéns por adquirir o código fonte do Painel SMS! 
+Este guia vai te ensinar o passo a passo para colocar o seu sistema no ar.
+
+-------------------------------------------------------------
+PRÉ-REQUISITOS
+-------------------------------------------------------------
+Antes de começar, certifique-se de ter instalado/criado:
+1. Node.js (versão 18 ou superior) instalado no seu computador.
+2. Git instalado no seu computador.
+3. Contas gratuitas criadas em: GitHub, Vercel e Supabase.
+4. Uma conta na API da Zernio (para o envio real de SMS).
+
+
+-------------------------------------------------------------
+PASSO 1: CONFIGURANDO O BANCO DE DADOS (SUPABASE)
+-------------------------------------------------------------
+1. Acesse https://supabase.com/ e crie um novo projeto.
+2. Quando o projeto terminar de criar, vá no menu esquerdo e clique em "SQL Editor" (ícone >_).
+3. Clique em "+ New Query" e cole TODO o código abaixo e clique no botão verde "Run":
+
+--- INÍCIO DO CÓDIGO SQL ---
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS public.user_credits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    email TEXT,
+    balance INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.user_credits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver seus próprios créditos" 
+ON public.user_credits FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_credits (user_id, email, balance)
+  VALUES (new.id, new.email, 0);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+CREATE OR REPLACE FUNCTION public.deduct_credit(amount INTEGER) 
+RETURNS BOOLEAN AS $$
+DECLARE
+  current_balance INTEGER;
+BEGIN
+  SELECT balance INTO current_balance 
+  FROM public.user_credits 
+  WHERE user_id = auth.uid() FOR UPDATE;
+
+  IF current_balance >= amount THEN
+    UPDATE public.user_credits 
+    SET balance = balance - amount 
+    WHERE user_id = auth.uid();
+    RETURN TRUE;
+  ELSE
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+--- FIM DO CÓDIGO SQL ---
+
+4. Após rodar o SQL, vá em "Project Settings" (ícone de engrenagem) > "API".
+5. Copie a "Project URL" e a "Project API Keys (anon public)". Você vai precisar delas no Passo 2.
+
+
+-------------------------------------------------------------
+PASSO 2: CONFIGURANDO O PROJETO NO SEU COMPUTADOR
+-------------------------------------------------------------
+1. Abra a pasta do código-fonte no seu editor de código (como o VS Code).
+2. Abra o terminal dentro da pasta e digite o comando para instalar as dependências:
+   npm install
+3. Na raiz do projeto, crie um arquivo chamado ".env" (com o ponto na frente).
+4. Dentro do arquivo ".env", cole o seguinte conteúdo e preencha com as suas chaves:
+
+VITE_SUPABASE_URL=URL_QUE_VOCE_COPIOU_NO_PASSO_1
+VITE_SUPABASE_ANON_KEY=CHAVE_ANON_QUE_VOCE_COPIOU_NO_PASSO_1
+ZERNIO_API_TOKEN=SEU_TOKEN_LÁ_DA_ZERNIO
+
+*(Atenção: Nunca envie o arquivo .env para o GitHub)*
+
+
+-------------------------------------------------------------
+PASSO 3: SUBINDO O CÓDIGO PARA O GITHUB (GIT)
+-------------------------------------------------------------
+1. Acesse sua conta do GitHub (https://github.com/) e crie um "New Repository" (Novo Repositório). Coloque o nome que quiser e deixe como "Private" (Privado).
+2. Não marque nenhuma caixa (como Add README). Apenas clique em Create repository.
+3. Volte para o terminal do seu VS Code, na pasta do projeto, e digite os comandos, um por um:
+
+git init
+git add .
+git commit -m "Primeiro commit do sistema"
+git branch -M main
+git remote add origin AQUI_VAI_O_LINK_DO_SEU_REPOSITORIO_GITHUB.git
+git push -u origin main
+
+
+-------------------------------------------------------------
+PASSO 4: COLOCANDO NO AR COM A VERCEL
+-------------------------------------------------------------
+1. Acesse https://vercel.com/ e crie/acesse sua conta usando seu GitHub.
+2. Clique em "Add New..." e escolha "Project".
+3. A Vercel vai mostrar seus repositórios do GitHub. Ache o repositório que você acabou de criar e clique em "Import".
+4. Na tela de configuração da Vercel, clique na aba "Environment Variables".
+5. Aqui você precisa adicionar exatamente as mesmas variáveis do Passo 2! Adicione uma por vez:
+   Nome: VITE_SUPABASE_URL | Value: (sua url do supabase) -> Clique em Add
+   Nome: VITE_SUPABASE_ANON_KEY | Value: (sua anon key do supabase) -> Clique em Add
+   Nome: ZERNIO_API_TOKEN | Value: (seu token da zernio) -> Clique em Add
+6. Clique no botão azul "Deploy".
+7. Aguarde 2 minutinhos e pronto! A Vercel vai te dar o link oficial do seu sistema no ar.
+
+=============================================================
+Seu Painel SMS agora está configurado e pronto para operar!
+Para recarregar os créditos dos seus clientes, basta acessar 
+seu Supabase, abrir a tabela "user_credits" e alterar o saldo.
+=============================================================

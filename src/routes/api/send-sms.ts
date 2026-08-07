@@ -10,13 +10,15 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Destinatário e mensagem são obrigatórios.');
     }
 
-    const ZERNIO_API_TOKEN = process.env['ZERNIO_API_TOKEN'];
+    const apiTokensEnv = process.env['ZERNIO_API_TOKENS'] || process.env['ZERNIO_API_TOKEN'];
     const SUPABASE_URL = process.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
     const SUPABASE_ANON_KEY = process.env['VITE_SUPABASE_ANON_KEY'] || process.env['SUPABASE_ANON_KEY'];
 
-    if (!ZERNIO_API_TOKEN || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error('Variáveis de ambiente não configuradas no servidor.');
+    if (!apiTokensEnv || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error('Configuração de API ausente no servidor.');
     }
+
+    const apiTokens = apiTokensEnv.split(',').map(t => t.trim()).filter(Boolean);
 
     // Create authenticated client
     const supabaseWithAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -40,7 +42,7 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Saldo insuficiente. Por favor, adicione créditos.');
     }
 
-    const senderIdsEnv = process.env['ZERNIO_SENDER_IDS'] || process.env['ZERNIO_SENDER_ID'] || 'Autobot';
+    const senderIdsEnv = process.env['ZERNIO_SENDER_IDS'] || process.env['ZERNIO_SENDER_ID'] || 'Autobot,autobot1,autobot2';
     const senderIds = senderIdsEnv.split(',').map(id => id.trim()).filter(Boolean);
 
     const cleanNumber = to.replace(/\D/g, '');
@@ -70,33 +72,38 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
     let response: Response | null = null;
     let sendSuccess = false;
     let errorData = null;
+    let invalidNumber = false;
 
-    for (const senderId of senderIds) {
-      response = await fetch('https://api.zernio.com/v1/sms/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Authorization': `Bearer ${ZERNIO_API_TOKEN}`
-        },
-        body: JSON.stringify({
-          from: senderId,
-          to: cleanNumber, // Limpa a máscara
-          text: cleanMessage
-        })
-      });
+    for (const token of apiTokens) {
+      for (const senderId of senderIds) {
+        response = await fetch('https://api.zernio.com/v1/sms/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            from: senderId,
+            to: cleanNumber, // Limpa a máscara
+            text: cleanMessage
+          })
+        });
 
-      if (response.ok) {
-        sendSuccess = true;
-        break; // Sucesso! Sai do loop e não tenta o próximo.
-      } else {
-        errorData = await response.json().catch(() => ({}));
-        console.warn(`Zernio API falhou com Sender ID ${senderId}:`, errorData);
-        // Se for erro de número inválido (ex: 400), não tentamos os outros IDs, pois o erro é no destinatário.
-        if (response.status === 400) {
-          break; 
+        if (response.ok) {
+          sendSuccess = true;
+          break; // Sucesso! Sai do loop de Sender IDs.
+        } else {
+          errorData = await response.json().catch(() => ({}));
+          console.warn(`Zernio API falhou (Token e Sender: ${senderId}):`, errorData);
+          // Se for erro de número inválido (ex: 400), não tentamos os outros, pois o erro é no destinatário.
+          if (response.status === 400) {
+            invalidNumber = true;
+            break; 
+          }
+          // Se for 403/429 (limite), continua tentando o próximo Sender ID ou Token!
         }
-        // Se for 403/429 (limite diário excedido ou rate limit), o loop continua e tenta o próximo Sender ID automaticamente!
       }
+      if (sendSuccess || invalidNumber) break; // Sai do loop de Tokens também
     }
 
     // Insert history on failure

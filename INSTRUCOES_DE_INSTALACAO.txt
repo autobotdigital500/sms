@@ -128,3 +128,26 @@ Seu Painel SMS agora está configurado e pronto para operar!
 Para recarregar os créditos dos seus clientes, basta acessar 
 seu Supabase, abrir a tabela "user_credits" e alterar o saldo.
 =============================================================
+
+-------------------------------------------------------------
+🤖 PASSO A PASSO AUTOMATIZADO COM INTELIGÊNCIA ARTIFICIAL (ANTIGRAVITY / CLAUDE / CURSOR)
+-------------------------------------------------------------
+Se você tem acesso a uma Inteligência Artificial programadora 
+(como o Antigravity, Cursor, Cline ou GitHub Copilot Workspace), 
+você pode pedir para ela configurar o projeto para você!
+
+Basta copiar o texto (prompt) abaixo e colar na sua IA:
+
+"""
+Olá! Eu acabei de comprar o código-fonte de um Painel de envio de SMS.
+O projeto foi feito em React (TanStack Start + Tailwind + Supabase).
+Por favor, analise a pasta do projeto e me ajude a colocá-lo no ar.
+
+Minha meta é:
+1. Instalar as dependências do projeto.
+2. Criar o arquivo `.env` para mim e me dizer quais chaves eu preciso preencher do meu Supabase e da Zernio (API_TOKEN).
+3. Me entregar o código SQL do arquivo `INSTRUCOES_DE_INSTALACAO.txt` para eu rodar no meu Supabase (e criar a tabela `user_credits` com segurança e as funções de saldo automático).
+4. Subir o código para o meu GitHub e me guiar em como fazer o deploy na Vercel.
+
+Por favor, faça isso passo a passo, começando pela instalação e pela leitura do código SQL.
+"""

@@ -707,24 +707,21 @@ function Index() {
 
                         {/* Delay Config */}
                         {sendMode === "bulk" && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300">
-                                Intervalo entre mensagens (Segundos)
-                              </label>
-                              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                {bulkDelay.toFixed(1)}s
-                              </span>
+                          <div className="space-y-3 pt-2">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-300 uppercase tracking-wide">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12H3"/><path d="M21 6H3"/><path d="M21 18H3"/><circle cx="8" cy="12" r="3"/><circle cx="16" cy="6" r="3"/><circle cx="16" cy="18" r="3"/></svg>
+                              <label>Intervalo (Segundos)</label>
                             </div>
-                            <input 
-                              type="range" 
-                              min="0" 
-                              max="5" 
-                              step="0.1"
-                              value={bulkDelay}
-                              onChange={(e) => setBulkDelay(parseFloat(e.target.value))}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700 accent-blue-600"
-                            />
+                            <div className="w-full max-w-[160px]">
+                              <input 
+                                type="number" 
+                                min="0" 
+                                step="0.1"
+                                value={bulkDelay}
+                                onChange={(e) => setBulkDelay(parseFloat(e.target.value) || 0)}
+                                className="w-full rounded-2xl border border-gray-200 dark:border-slate-700/50 bg-gray-50 dark:bg-slate-900/50 p-4 text-center text-xl font-bold transition-all focus:border-blue-500 focus:bg-white dark:bg-[#0b1324] focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-gray-900 dark:text-white"
+                              />
+                            </div>
                             <p className="text-xs text-gray-500 dark:text-slate-400">
                               Valores muito baixos podem causar bloqueio temporário (Rate Limit) pelas operadoras.
                             </p>

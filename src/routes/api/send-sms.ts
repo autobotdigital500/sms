@@ -42,7 +42,7 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       throw new Error('Saldo insuficiente. Por favor, adicione créditos.');
     }
 
-    const senderIdsEnv = process.env['ZERNIO_SENDER_IDS'] || process.env['ZERNIO_SENDER_ID'] || 'Autobot,autobot1,autobot2,autobot3';
+    const senderIdsEnv = process.env['ZERNIO_SENDER_IDS'] || process.env['ZERNIO_SENDER_ID'] || 'Autobot,autobot1,autobot2,autobot3,autobot4,autobot5';
     const senderIds = senderIdsEnv.split(',').map(id => id.trim()).filter(Boolean);
 
     const cleanNumber = to.replace(/\D/g, '');

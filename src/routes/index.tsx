@@ -120,6 +120,70 @@ function Index() {
     document.body.removeChild(link);
   };
 
+  // Opt-outs State
+  const [optOuts, setOptOuts] = useState<any[]>([]);
+  const [isLoadingOptOuts, setIsLoadingOptOuts] = useState(false);
+  const [newOptOutNumber, setNewOptOutNumber] = useState("");
+  const [isAddingOptOut, setIsAddingOptOut] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "opt-outs" && session?.user) {
+      fetchOptOuts();
+    }
+  }, [activeTab, session]);
+
+  const fetchOptOuts = async () => {
+    setIsLoadingOptOuts(true);
+    const { data, error } = await supabase
+      .from('opt_outs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data && !error) {
+      setOptOuts(data);
+    }
+    setIsLoadingOptOuts(false);
+  };
+
+  const handleAddOptOut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOptOutNumber || !session?.user) return;
+    
+    setIsAddingOptOut(true);
+    const cleanNumber = newOptOutNumber.replace(/\D/g, '');
+    
+    const { error } = await supabase.from('opt_outs').insert({
+      user_id: session.user.id,
+      phone_number: cleanNumber
+    });
+
+    if (error) {
+      toast.error("Erro ao bloquear número. Talvez já esteja na lista.");
+    } else {
+      toast.success("Número bloqueado com sucesso!");
+      setNewOptOutNumber("");
+      fetchOptOuts();
+    }
+    setIsAddingOptOut(false);
+  };
+
+  const handleRemoveOptOut = async (id: string) => {
+    if (!session?.user) return;
+    
+    const { error } = await supabase
+      .from('opt_outs')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      toast.error("Erro ao remover bloqueio.");
+    } else {
+      toast.success("Número removido dos bloqueios!");
+      fetchOptOuts();
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -775,15 +839,79 @@ function Index() {
               <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="mb-8">
                   <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Opt-outs (Bloqueios)</h1>
-                  <p className="text-gray-500 dark:text-slate-400 text-lg">Números que solicitaram remoção da lista de disparos.</p>
+                  <p className="text-gray-500 dark:text-slate-400 text-lg">Gerencie os números que solicitaram remoção da lista de disparos.</p>
                 </div>
+                
+                <div className="rounded-2xl border border-white/40 bg-white dark:bg-[#0b1324]/60 backdrop-blur-xl p-6 shadow-xl shadow-gray-200/50 mb-8">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Adicionar novo bloqueio</h2>
+                  <form onSubmit={handleAddOptOut} className="flex gap-4">
+                    <input 
+                      type="text" 
+                      value={newOptOutNumber}
+                      onChange={(e) => setNewOptOutNumber(e.target.value)}
+                      placeholder="Ex: 11999999999" 
+                      className="flex-1 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 transition-colors placeholder:text-gray-400"
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={isAddingOptOut || !newOptOutNumber}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isAddingOptOut ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                      Bloquear Número
+                    </button>
+                  </form>
+                </div>
+
                 <div className="rounded-2xl border border-white/40 bg-white dark:bg-[#0b1324]/60 backdrop-blur-xl p-1 shadow-xl shadow-gray-200/50">
-                  <div className="rounded-xl bg-white dark:bg-[#0b1324] overflow-hidden p-12 text-center flex flex-col items-center justify-center">
-                    <div className="h-16 w-16 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4 ring-4 ring-green-50/50 dark:ring-green-900/10">
-                      <MessageSquare size={28} className="text-green-500" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Nenhum opt-out recente! 🎉</h3>
-                    <p className="text-gray-500 dark:text-slate-400 text-sm max-w-sm">Seus contatos estão engajados com as mensagens. Nenhuma solicitação de descadastro foi registrada.</p>
+                  <div className="rounded-xl bg-white dark:bg-[#0b1324] overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-gray-50 dark:bg-slate-900/50/80 text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 border-b border-gray-100 dark:border-slate-800">
+                        <tr>
+                          <th className="px-6 py-5">Número Bloqueado</th>
+                          <th className="px-6 py-5">Data do Bloqueio</th>
+                          <th className="px-6 py-5 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                        {isLoadingOptOuts ? (
+                          <tr>
+                            <td colSpan={3} className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">
+                              <Loader2 className="animate-spin w-6 h-6 mx-auto mb-2 text-blue-500" />
+                              Carregando bloqueios...
+                            </td>
+                          </tr>
+                        ) : optOuts.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="px-6 py-12 text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="h-16 w-16 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4 ring-4 ring-green-50/50 dark:ring-green-900/10">
+                                  <MessageSquare size={28} className="text-green-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Nenhum opt-out registrado! 🎉</h3>
+                                <p className="text-gray-500 dark:text-slate-400 text-sm max-w-sm">Nenhuma solicitação de descadastro ou bloqueio manual foi registrada.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          optOuts.map((item, i) => (
+                            <tr key={i} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
+                              <td className="px-6 py-4 font-semibold text-gray-700 dark:text-slate-200">{item.phone_number}</td>
+                              <td className="px-6 py-4 text-gray-400 font-medium">{new Date(item.created_at).toLocaleString('pt-BR')}</td>
+                              <td className="px-6 py-4 text-right">
+                                <button 
+                                  onClick={() => handleRemoveOptOut(item.id)}
+                                  className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Remover bloqueio"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

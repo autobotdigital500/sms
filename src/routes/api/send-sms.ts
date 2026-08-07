@@ -42,6 +42,28 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
 
     const ZERNIO_SENDER_ID = process.env['ZERNIO_SENDER_ID'] || 'Autobot';
 
+    const cleanNumber = to.replace(/\D/g, '');
+
+    // Check opt-outs
+    const { data: optOutCheck, error: optOutError } = await supabaseWithAuth
+      .from('opt_outs')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('phone_number', cleanNumber)
+      .maybeSingle();
+
+    if (optOutCheck) {
+      // Registrar no histórico como bloqueado e abortar envio
+      await supabaseWithAuth.from('message_history').insert({
+        user_id: user.id,
+        to_number: to,
+        message: message.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+        status: 'Bloqueado',
+        error_message: 'Número na lista de opt-outs.'
+      });
+      throw new Error('Número bloqueado por opt-out (Envio cancelado e crédito não cobrado).');
+    }
+
     const cleanMessage = message.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     const response = await fetch('https://api.zernio.com/v1/sms/messages', {
@@ -52,7 +74,7 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       },
       body: JSON.stringify({
         from: ZERNIO_SENDER_ID,
-        to: to.replace(/\D/g, ''), // Limpa a máscara (se necessário enviar código do país, adicione o + aqui)
+        to: cleanNumber, // Limpa a máscara
         text: cleanMessage
       })
     });

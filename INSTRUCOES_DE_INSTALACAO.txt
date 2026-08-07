@@ -109,6 +109,29 @@ DROP TRIGGER IF EXISTS on_new_login_session ON auth.sessions;
 CREATE TRIGGER on_new_login_session
   AFTER INSERT ON auth.sessions
   FOR EACH ROW EXECUTE PROCEDURE public.enforce_single_session();
+
+-- SCRIPT DE CRIAÇÃO DA TABELA DE OPT-OUTS (BLOQUEIOS)
+CREATE TABLE IF NOT EXISTS public.opt_outs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    phone_number TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, phone_number)
+);
+
+ALTER TABLE public.opt_outs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver seus próprios bloqueios" 
+ON public.opt_outs FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem adicionar bloqueios" 
+ON public.opt_outs FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem remover bloqueios" 
+ON public.opt_outs FOR DELETE 
+USING (auth.uid() = user_id);
 --- FIM DO CÓDIGO SQL ---
 
 4. Após rodar o SQL, vá em "Project Settings" (ícone de engrenagem) > "API".

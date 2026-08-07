@@ -18,7 +18,9 @@ import {
   Lock,
   Loader2,
   Moon,
-  Sun
+  Sun,
+  CreditCard,
+  Wallet
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -43,6 +45,7 @@ function Index() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [balance, setBalance] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sendMode, setSendMode] = useState<"single" | "bulk">("single");
@@ -106,6 +109,24 @@ function Index() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchBalance = async () => {
+      const { data } = await supabase.from('user_credits').select('balance').eq('user_id', session.user.id).single();
+      if (data) setBalance(data.balance);
+    };
+    
+    fetchBalance();
+    
+    const channel = supabase.channel('credits_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits', filter: `user_id=eq.${session.user.id}` }, payload => {
+        setBalance((payload.new as any).balance);
+      }).subscribe();
+      
+    return () => { supabase.removeChannel(channel); };
+  }, [session]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +327,7 @@ function Index() {
     setIsSending(true);
     try {
       if (sendMode === "single") {
-        const data = await sendSmsFn({ data: { to: phone, message } });
+        const data = await sendSmsFn({ data: { to: phone, message, token: session.access_token } });
         if (!data.success) throw new Error("Falha ao enviar SMS");
         
         toast.success(scheduleDate ? `SMS agendado para ${new Date(scheduleDate).toLocaleString()}` : "SMS enviado com sucesso!");
@@ -335,7 +356,7 @@ function Index() {
           
           try {
             // Enviamos um a um para poder acompanhar o progresso real na tela
-            const data = await sendSmsFn({ data: { to: num, message } });
+            const data = await sendSmsFn({ data: { to: num, message, token: session.access_token } });
             if (data.success) {
               successCount++;
               newHistoryItems.push({
@@ -402,6 +423,7 @@ function Index() {
     { id: "history", icon: Clock, label: "Histórico" },
     { id: "opt-outs", icon: MessageSquare, label: "Opt-outs" },
     { id: "webhooks", icon: Settings, label: "Webhooks" },
+    { id: "recharge", icon: CreditCard, label: "Recarga de Créditos" },
   ];
 
   return (
@@ -436,8 +458,27 @@ function Index() {
             ))}
           </nav>
 
+          {/* Balance Widget */}
+          <div className="px-4 mb-4">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 text-white shadow-lg shadow-blue-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Wallet size={16} className="text-blue-100" />
+                <span className="text-sm font-medium text-blue-100">Saldo Atual</span>
+              </div>
+              <div className="text-2xl font-bold tracking-tight">
+                {balance === null ? <Loader2 size={18} className="animate-spin mt-1" /> : balance.toLocaleString('pt-BR')} <span className="text-sm font-normal opacity-80">SMS</span>
+              </div>
+              <button 
+                onClick={() => setActiveTab("recharge")}
+                className="mt-3 w-full bg-white/20 hover:bg-white/30 transition-colors rounded-lg py-1.5 text-xs font-semibold"
+              >
+                Adicionar Créditos
+              </button>
+            </div>
+          </div>
+
           {/* Theme Toggle & Settings Section */}
-          <div className="p-4 mt-auto space-y-3">
+          <div className="p-4 space-y-3 border-t border-gray-200 dark:border-slate-800/60">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="w-full flex items-center justify-between gap-2 py-2.5 px-4 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-all font-medium border border-slate-200 dark:border-slate-700/50"
@@ -763,6 +804,127 @@ function Index() {
                 </div>
               </div>
             )}
+
+            {activeTab === "recharge" && (
+              <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="mb-10 text-center">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-3">Recarga de Créditos</h1>
+                  <p className="text-gray-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">
+                    Escolha o pacote ideal para a sua necessidade. A liberação dos créditos é feita imediatamente após a confirmação do pagamento.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Basic Plan */}
+                  <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-[#0b1324] p-8 shadow-xl shadow-gray-200/50 dark:shadow-none flex flex-col relative overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="mb-4">
+                      <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        Iniciante
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Básico</h3>
+                    <div className="flex items-baseline gap-1 mb-6">
+                      <span className="text-4xl font-extrabold text-gray-900 dark:text-white">1.000</span>
+                      <span className="text-gray-500 dark:text-slate-400 font-medium">SMS</span>
+                    </div>
+                    <ul className="space-y-3 mb-8 flex-1">
+                      <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
+                        <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        Disparo único e em massa
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
+                        <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        Validade de 30 dias
+                      </li>
+                    </ul>
+                    <a 
+                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Básico de 1.000 SMS.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full block text-center bg-gray-900 hover:bg-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                    >
+                      Comprar Pacote
+                    </a>
+                  </div>
+
+                  {/* Pro Plan */}
+                  <div className="rounded-2xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/10 p-8 shadow-2xl shadow-blue-500/20 flex flex-col relative overflow-hidden transition-transform hover:-translate-y-1">
+                    <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-bl-xl tracking-wider">
+                      MAIS VENDIDO
+                    </div>
+                    <div className="mb-4 mt-2">
+                      <span className="bg-blue-200 text-blue-800 dark:bg-blue-800/40 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        Recomendado
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profissional</h3>
+                    <div className="flex items-baseline gap-1 mb-6">
+                      <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">5.000</span>
+                      <span className="text-blue-800 dark:text-blue-300 font-medium">SMS</span>
+                    </div>
+                    <ul className="space-y-3 mb-8 flex-1">
+                      <li className="flex items-center gap-3 text-sm text-gray-700 dark:text-slate-200">
+                        <div className="w-5 h-5 rounded-full bg-blue-200 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">✓</div>
+                        Melhor custo-benefício
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-gray-700 dark:text-slate-200">
+                        <div className="w-5 h-5 rounded-full bg-blue-200 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">✓</div>
+                        Prioridade de envio
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-gray-700 dark:text-slate-200">
+                        <div className="w-5 h-5 rounded-full bg-blue-200 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">✓</div>
+                        Validade de 90 dias
+                      </li>
+                    </ul>
+                    <a 
+                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Profissional de 5.000 SMS.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)]"
+                    >
+                      Comprar Pacote
+                    </a>
+                  </div>
+
+                  {/* Elite Plan */}
+                  <div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-[#0b1324] p-8 shadow-xl shadow-gray-200/50 dark:shadow-none flex flex-col relative overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-2xl">
+                    <div className="mb-4">
+                      <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        Empresarial
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Elite</h3>
+                    <div className="flex items-baseline gap-1 mb-6">
+                      <span className="text-4xl font-extrabold text-gray-900 dark:text-white">10.000</span>
+                      <span className="text-gray-500 dark:text-slate-400 font-medium">SMS</span>
+                    </div>
+                    <ul className="space-y-3 mb-8 flex-1">
+                      <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
+                        <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        Volume máximo
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
+                        <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        Suporte dedicado
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
+                        <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        Sem validade (créditos não expiram)
+                      </li>
+                    </ul>
+                    <a 
+                      href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá, sou o usuário ${session?.user?.email} e gostaria de comprar o pacote Elite de 10.000 SMS.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full block text-center bg-gray-900 hover:bg-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                    >
+                      Comprar Pacote
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
       </div>

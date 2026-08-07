@@ -364,7 +364,29 @@ function Index() {
         
         let successCount = 0;
         let failedCount = 0;
+
+        for (let i = 0; i < parsedNumbers.length; i++) {
+          const num = parsedNumbers[i];
+          if (!num) continue;
+          
+          try {
+            // Enviamos um a um para poder acompanhar o progresso real na tela
+            const data = await sendSmsFn({ data: { to: num, message, token: session.access_token } });
+            if (data.success) {
+              successCount++;
+            } else {
+              failedCount++;
+            }
+          } catch(e) {
+            failedCount++;
+          }
+          
+          setDispatchProgress({ total: parsedNumbers.length, current: i + 1, success: successCount, failed: failedCount, active: true });
+          
+          // Animação de progresso suave e simulação de delay de processamento (ou real throttling)
+          await new Promise(r => setTimeout(r, 600));
         }
+
         toast.success(
           scheduleDate 
             ? `Agendamento concluído para ${parsedNumbers.length} contatos!`

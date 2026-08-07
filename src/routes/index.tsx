@@ -490,7 +490,7 @@ function Index() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex flex-1 flex-col overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50 dark:bg-slate-900/50">
+        <main className="flex flex-1 flex-col overflow-hidden bg-gray-50 dark:bg-[#0b1324]">
           {/* Top Header */}
           <header className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-slate-800/60 bg-white dark:bg-[#0b1324]/80 backdrop-blur-md px-8 sticky top-0 z-10">
             <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -502,8 +502,7 @@ function Index() {
             <div className="flex items-center gap-4">
               <button className="group flex items-center gap-3 rounded-full py-1.5 pl-4 pr-1.5 transition-all hover:bg-white dark:bg-[#0b1324]/60 hover:shadow-sm active:scale-[0.98]">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-800 dark:text-white group-hover:text-blue-700 transition-colors">Alexandre</p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Administrador</p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-white group-hover:text-blue-700 transition-colors">{session?.user?.email || "Usuário"}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-200/50 group-hover:ring-blue-300 transition-all">
                   <User size={18} className="text-blue-600" />

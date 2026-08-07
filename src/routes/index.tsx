@@ -123,6 +123,25 @@ function Index() {
     document.body.removeChild(link);
   };
 
+  const handleClearHistory = async () => {
+    if (!session?.user) return;
+    const confirm = window.confirm("Tem certeza que deseja apagar todo o histórico de envios? Esta ação não pode ser desfeita.");
+    if (!confirm) return;
+
+    try {
+      const { error } = await supabase
+        .from('message_history')
+        .delete()
+        .eq('user_id', session.user.id);
+      
+      if (error) throw error;
+      setHistory([]);
+      toast.success("Histórico apagado com sucesso.");
+    } catch (err: any) {
+      toast.error("Erro ao apagar histórico: " + err.message);
+    }
+  };
+
   // Opt-outs State
   const [optOuts, setOptOuts] = useState<any[]>([]);
   const [isLoadingOptOuts, setIsLoadingOptOuts] = useState(false);
@@ -831,14 +850,24 @@ function Index() {
                     <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Histórico de Envios</h1>
                     <p className="text-gray-500 dark:text-slate-400 text-lg">Acompanhe os disparos recentes e os status de entrega.</p>
                   </div>
-                  <button 
-                    onClick={downloadCSV}
-                    disabled={history.length === 0 || isLoadingHistory}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
-                  >
-                    <FileSpreadsheet size={20} />
-                    Baixar Relatório (CSV)
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={handleClearHistory}
+                      disabled={history.length === 0 || isLoadingHistory}
+                      className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-semibold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 size={20} />
+                      Apagar Tudo
+                    </button>
+                    <button 
+                      onClick={downloadCSV}
+                      disabled={history.length === 0 || isLoadingHistory}
+                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
+                    >
+                      <FileSpreadsheet size={20} />
+                      Baixar Relatório (CSV)
+                    </button>
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-white/40 bg-white dark:bg-[#0b1324]/60 backdrop-blur-xl p-1 shadow-xl shadow-gray-200/50">
                   <div className="rounded-xl bg-white dark:bg-[#0b1324] overflow-hidden">

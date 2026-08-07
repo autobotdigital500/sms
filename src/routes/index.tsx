@@ -667,14 +667,6 @@ function Index() {
                                 placeholder="Cole os números aqui (separados por vírgula ou linha)..." 
                                 className="w-full rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50/50 p-3.5 text-sm transition-all focus:border-blue-500 focus:bg-white dark:bg-[#0b1324] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none text-gray-900 dark:text-white"
                               />
-                              {bulkText && (
-                                <button 
-                                  onClick={() => processBulkText("")}
-                                  className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
                             </div>
 
                             {/* File Upload Option */}

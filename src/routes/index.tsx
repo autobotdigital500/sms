@@ -12,13 +12,19 @@ import {
   Smartphone,
   Trash2,
   FileSpreadsheet,
-  AlertCircle
+  AlertCircle,
+  LogOut,
+  Mail,
+  Lock,
+  Loader2
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { sendSmsFn } from "./api/send-sms";
 import { bulkSendSmsFn } from "./api/-bulk-send-sms";
+import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -27,6 +33,14 @@ export const Route = createFileRoute("/")({
 type HistoryItem = { id: string, to: string, msg: string, date: string, status: string, color: string };
 
 function Index() {
+  // Auth state
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sendMode, setSendMode] = useState<"single" | "bulk">("single");
   
@@ -74,6 +88,185 @@ function Index() {
       return newHistory;
     });
   };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingAuth(true);
+    
+    try {
+      if (authMode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Cadastro realizado! Por favor faça o login.");
+        setAuthMode("login");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Login realizado com sucesso!");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro na autenticação");
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Sessão encerrada");
+  };
+
+  if (authLoading) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#020817]"><Loader2 className="animate-spin text-blue-500" size={32} /></div>;
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen grid md:grid-cols-2 bg-[#020817] text-white font-sans selection:bg-blue-500/30">
+        
+        {/* Left Side - Presentation */}
+        <div className="hidden md:flex flex-col justify-center px-12 lg:px-24 border-r border-slate-800 relative overflow-hidden bg-[#020817]">
+          {/* Subtle grid background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+          
+          {/* Header Mobile Toggle */}
+          <div className="flex items-center justify-between p-4 border-b border-slate-200/50 md:hidden bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
+                <MessageSquare size={16} />
+              </div>
+              <span className="font-bold text-slate-800">Painel SMS</span>
+            </div>
+            
+            <button onClick={handleSignOut} className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+              <LogOut size={20} />
+            </button>
+          </div>
+
+          <div className="relative z-10 flex-1 flex flex-col pt-12">
+            <div className="flex items-center gap-3 mb-16">
+              <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <MessageSquare size={20} className="text-white" />
+              </div>
+              <span className="font-bold text-xl tracking-tight">Painel SMS <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full ml-2 align-middle font-medium border border-slate-700">V1.1</span></span>
+            </div>
+            
+            <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">
+              Plataforma Corporativa de SMS
+            </p>
+            
+            <h1 className="text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight mb-6">
+              Atendimento, campanhas e automações em um só console.
+            </h1>
+            
+            <p className="text-slate-400 text-lg leading-relaxed max-w-md mb-12">
+              Centralize conversas, dispare broadcasts com a API oficial da Zernio e acompanhe resultados em tempo real, com segurança de nível empresarial.
+            </p>
+            
+            <div className="grid grid-cols-3 gap-6 mt-auto pb-12">
+              <div>
+                <p className="text-xs text-slate-500 font-semibold mb-1 uppercase">Uptime</p>
+                <p className="text-2xl font-bold">99,9%</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-semibold mb-1 uppercase">Mensagens/Mês</p>
+                <p className="text-2xl font-bold">1M+</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-semibold mb-1 uppercase">API Oficial</p>
+                <p className="text-2xl font-bold">Zernio</p>
+              </div>
+            </div>
+            
+            <div className="text-xs text-slate-600 pb-8">
+              © 2026 Painel SMS. Todos os direitos reservados.
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Login Form */}
+        <div className="flex items-center justify-center p-6 relative bg-[#020817]">
+          {/* Subtle glow effect behind form */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+          
+          <div className="w-full max-w-[420px] bg-[#0b1324] border border-slate-800/80 rounded-2xl p-8 lg:p-10 shadow-2xl relative z-10">
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
+              Acessar O Painel V1.1
+            </h2>
+            <p className="text-sm text-slate-400 mb-8">
+              Use suas credenciais corporativas para continuar.
+            </p>
+            
+            <form onSubmit={handleAuth} className="space-y-5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">E-mail</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#020817] border border-slate-800 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-wider">Senha</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#020817] border border-slate-800 rounded-lg px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingAuth}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg mt-6 shadow-[0_0_20px_rgba(59,130,246,0.25)] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:hover:bg-blue-500"
+              >
+                {isSubmittingAuth ? <Loader2 className="animate-spin" size={18} /> : (authMode === "login" ? "Entrar no sistema" : "Criar conta corporativa")}
+              </button>
+            </form>
+            
+            <div className="mt-8 text-center text-xs text-slate-500 flex flex-col items-center gap-4">
+              <p>Ambiente protegido • Conexão criptografada</p>
+              
+              {authMode === "login" ? (
+                <button onClick={() => setAuthMode("signup")} className="text-slate-400 hover:text-white transition-colors underline decoration-slate-600 underline-offset-4">Criar uma conta</button>
+              ) : (
+                <button onClick={() => setAuthMode("login")} className="text-slate-400 hover:text-white transition-colors underline decoration-slate-600 underline-offset-4">Voltar ao login</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // SMS limits calculation
   const smsLength = message.length;

@@ -829,9 +829,13 @@ function Index() {
                       </span>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Básico</h3>
-                    <div className="flex items-baseline gap-1 mb-6">
+                    <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-extrabold text-gray-900 dark:text-white">1.000</span>
                       <span className="text-gray-500 dark:text-slate-400 font-medium">SMS</span>
+                    </div>
+                    <div className="mb-6">
+                      <div className="text-3xl font-bold text-gray-800 dark:text-white">R$ 120<span className="text-lg text-gray-500">,00</span></div>
+                      <div className="text-sm text-green-600 dark:text-green-400 font-medium mt-1">Apenas R$ 0,12 por SMS</div>
                     </div>
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">
@@ -864,9 +868,13 @@ function Index() {
                       </span>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profissional</h3>
-                    <div className="flex items-baseline gap-1 mb-6">
+                    <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">5.000</span>
                       <span className="text-blue-800 dark:text-blue-300 font-medium">SMS</span>
+                    </div>
+                    <div className="mb-6">
+                      <div className="text-3xl font-bold text-gray-800 dark:text-white">R$ 500<span className="text-lg text-gray-500 dark:text-slate-400">,00</span></div>
+                      <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">Apenas R$ 0,10 por SMS</div>
                     </div>
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-gray-700 dark:text-slate-200">
@@ -900,9 +908,13 @@ function Index() {
                       </span>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Elite</h3>
-                    <div className="flex items-baseline gap-1 mb-6">
+                    <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-extrabold text-gray-900 dark:text-white">10.000</span>
                       <span className="text-gray-500 dark:text-slate-400 font-medium">SMS</span>
+                    </div>
+                    <div className="mb-6">
+                      <div className="text-3xl font-bold text-gray-800 dark:text-white">R$ 700<span className="text-lg text-gray-500">,00</span></div>
+                      <div className="text-sm text-amber-600 dark:text-amber-500 font-medium mt-1">O mais barato: R$ 0,07 por SMS</div>
                     </div>
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-gray-600 dark:text-slate-300">

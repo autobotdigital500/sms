@@ -499,16 +499,23 @@ function Index() {
               </h1>
             </div>
             
-            <div className="flex items-center gap-4">
-              <button className="group flex items-center gap-3 rounded-full py-1.5 pl-4 pr-1.5 transition-all hover:bg-white dark:bg-[#0b1324]/60 hover:shadow-sm active:scale-[0.98]">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-800 dark:text-white group-hover:text-blue-700 transition-colors">{session?.user?.email || "Usuário"}</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-200/50 group-hover:ring-blue-300 transition-all">
-                  <User size={18} className="text-blue-600" />
-                </div>
-              </button>
-            </div>
+              <div className="flex items-center gap-3">
+                <button className="group flex items-center gap-3 rounded-full py-1.5 pl-4 pr-1.5 transition-all hover:bg-white dark:bg-[#0b1324]/60 hover:shadow-sm active:scale-[0.98]">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-gray-800 dark:text-white group-hover:text-blue-700 transition-colors">{session?.user?.email || "Usuário"}</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm ring-1 ring-gray-200/50 group-hover:ring-blue-300 transition-all">
+                    <User size={18} className="text-blue-600" />
+                  </div>
+                </button>
+                <button 
+                  onClick={handleSignOut}
+                  className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors ml-2"
+                  title="Sair"
+                >
+                  <LogOut size={20} />
+                </button>
+              </div>
           </header>
 
           {/* Dashboard Content */}

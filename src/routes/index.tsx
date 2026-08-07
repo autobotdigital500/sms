@@ -150,17 +150,33 @@ function Index() {
     if (!newOptOutNumber || !session?.user) return;
     
     setIsAddingOptOut(true);
-    const cleanNumber = newOptOutNumber.replace(/\D/g, '');
     
-    const { error } = await supabase.from('opt_outs').insert({
+    // Extrai todos os números do texto separando por quebra de linha ou vírgula
+    const rawNumbers = newOptOutNumber.split(/[\n,;]+/)
+      .map(n => n.replace(/\D/g, ''))
+      .filter(n => n.length >= 8); // Pelo menos 8 dígitos para ser válido
+      
+    // Remove duplicatas locais
+    const uniqueNumbers = [...new Set(rawNumbers)];
+
+    if (uniqueNumbers.length === 0) {
+      toast.error("Nenhum número válido encontrado.");
+      setIsAddingOptOut(false);
+      return;
+    }
+    
+    const inserts = uniqueNumbers.map(num => ({
       user_id: session.user.id,
-      phone_number: cleanNumber
-    });
+      phone_number: num
+    }));
+
+    // O Supabase vai inserir os números e ignorar os que já existem devido a constraint UNIQUE
+    const { error } = await supabase.from('opt_outs').upsert(inserts, { onConflict: 'user_id, phone_number', ignoreDuplicates: true });
 
     if (error) {
-      toast.error("Erro ao bloquear número. Talvez já esteja na lista.");
+      toast.error("Erro ao bloquear números.");
     } else {
-      toast.success("Número bloqueado com sucesso!");
+      toast.success(`${uniqueNumbers.length} número(s) processado(s) com sucesso!`);
       setNewOptOutNumber("");
       fetchOptOuts();
     }
@@ -843,23 +859,25 @@ function Index() {
                 </div>
                 
                 <div className="rounded-2xl border border-white/40 bg-white dark:bg-[#0b1324]/60 backdrop-blur-xl p-6 shadow-xl shadow-gray-200/50 mb-8">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Adicionar novo bloqueio</h2>
-                  <form onSubmit={handleAddOptOut} className="flex gap-4">
-                    <input 
-                      type="text" 
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Adicionar novo(s) bloqueio(s)</h2>
+                  <form onSubmit={handleAddOptOut} className="flex flex-col gap-4">
+                    <textarea 
                       value={newOptOutNumber}
                       onChange={(e) => setNewOptOutNumber(e.target.value)}
-                      placeholder="Ex: 11999999999" 
-                      className="flex-1 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 transition-colors placeholder:text-gray-400"
+                      placeholder="Cole um número ou uma lista separada por vírgula ou por linha (Enter)..." 
+                      rows={3}
+                      className="w-full bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3 transition-colors placeholder:text-gray-400 resize-y"
                     />
-                    <button 
-                      type="submit" 
-                      disabled={isAddingOptOut || !newOptOutNumber}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {isAddingOptOut ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
-                      Bloquear Número
-                    </button>
+                    <div className="flex justify-end">
+                      <button 
+                        type="submit" 
+                        disabled={isAddingOptOut || !newOptOutNumber}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {isAddingOptOut ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                        Bloquear Número(s)
+                      </button>
+                    </div>
                   </form>
                 </div>
 

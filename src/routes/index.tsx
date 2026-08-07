@@ -390,8 +390,17 @@ function Index() {
 
   const processBulkText = (text: string) => {
     setBulkText(text);
-    const rawNumbers = text.split(/[\n,;]+/).map(n => n.trim().replace(/\D/g, ''));
-    const validNumbers = rawNumbers.filter(n => n.length >= 10 && n.length <= 15);
+    const rawNumbers = text.split(/[\n,;]+/).map(n => n.trim().replace(/\D/g, '')).filter(Boolean);
+    
+    const fixedNumbers = rawNumbers.map(n => {
+      // Correção automática: Se for celular BR faltando o 9 (12 dígitos com código 55), insere o 9
+      if (n.length === 12 && n.startsWith('55')) {
+        return n.slice(0, 4) + '9' + n.slice(4);
+      }
+      return n;
+    });
+
+    const validNumbers = fixedNumbers.filter(n => n.length >= 10 && n.length <= 15);
     // Remove duplicates
     setParsedNumbers([...new Set(validNumbers)]);
   };

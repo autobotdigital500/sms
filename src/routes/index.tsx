@@ -74,25 +74,50 @@ function Index() {
   } | null>(null);
   
   // History State
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sms_history');
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load history");
-      }
+    if (activeTab === "history" && session?.user) {
+      setIsLoadingHistory(true);
+      supabase
+        .from('message_history')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200)
+        .then(({ data, error }) => {
+          if (data && !error) {
+            setHistory(data);
+          }
+          setIsLoadingHistory(false);
+        });
     }
-  }, []);
+  }, [activeTab, session]);
 
-  const addToHistory = (items: HistoryItem[]) => {
-    setHistory(prev => {
-      const newHistory = [...items, ...prev];
-      localStorage.setItem('sms_history', JSON.stringify(newHistory));
-      return newHistory;
-    });
+  const downloadCSV = () => {
+    if (history.length === 0) return;
+    const headers = ["ID", "Destinatário", "Mensagem", "Status", "Data"];
+    const csvContent = [
+      headers.join(","),
+      ...history.map(h => 
+        [
+          h.id, 
+          h.to_number, 
+          `"${h.message.replace(/"/g, '""')}"`, 
+          h.status, 
+          new Date(h.created_at).toLocaleString('pt-BR')
+        ].join(",")
+      )
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `historico_sms_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -332,15 +357,6 @@ function Index() {
         
         toast.success(scheduleDate ? `SMS agendado para ${new Date(scheduleDate).toLocaleString()}` : "SMS enviado com sucesso!");
         
-        addToHistory([{
-          id: generateId(),
-          to: phone,
-          msg: message,
-          date: scheduleDate ? `Agendado: ${new Date(scheduleDate).toLocaleString()}` : getNowFormatted(),
-          status: scheduleDate ? "Agendado" : "Entregue",
-          color: scheduleDate ? "text-orange-700 bg-orange-100 ring-orange-600/20" : "text-green-700 bg-green-100 ring-green-600/20"
-        }]);
-        
         setPhone("");
       } else {
         // Real-time tracking loop
@@ -348,55 +364,7 @@ function Index() {
         
         let successCount = 0;
         let failedCount = 0;
-        const newHistoryItems: HistoryItem[] = [];
-
-        for (let i = 0; i < parsedNumbers.length; i++) {
-          const num = parsedNumbers[i];
-          if (!num) continue;
-          
-          try {
-            // Enviamos um a um para poder acompanhar o progresso real na tela
-            const data = await sendSmsFn({ data: { to: num, message, token: session.access_token } });
-            if (data.success) {
-              successCount++;
-              newHistoryItems.push({
-                id: generateId(),
-                to: num,
-                msg: message,
-                date: scheduleDate ? `Agendado: ${new Date(scheduleDate).toLocaleString()}` : getNowFormatted(),
-                status: scheduleDate ? "Agendado" : "Entregue",
-                color: scheduleDate ? "text-orange-700 bg-orange-100 ring-orange-600/20" : "text-green-700 bg-green-100 ring-green-600/20"
-              });
-            } else {
-              failedCount++;
-              newHistoryItems.push({
-                id: generateId(),
-                to: num,
-                msg: message,
-                date: getNowFormatted(),
-                status: "Falha",
-                color: "text-red-700 bg-red-100 ring-red-600/20"
-              });
-            }
-          } catch(e) {
-            failedCount++;
-            newHistoryItems.push({
-              id: generateId(),
-              to: num,
-              msg: message,
-              date: getNowFormatted(),
-              status: "Falha",
-              color: "text-red-700 bg-red-100 ring-red-600/20"
-            });
-          }
-          
-          setDispatchProgress({ total: parsedNumbers.length, current: i + 1, success: successCount, failed: failedCount, active: true });
-          
-          // Animação de progresso suave e simulação de delay de processamento (ou real throttling)
-          await new Promise(r => setTimeout(r, 600));
         }
-
-        addToHistory(newHistoryItems);
         toast.success(
           scheduleDate 
             ? `Agendamento concluído para ${parsedNumbers.length} contatos!`
@@ -716,9 +684,19 @@ function Index() {
 
             {activeTab === "history" && (
               <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="mb-8">
-                  <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Histórico de Envios</h1>
-                  <p className="text-gray-500 dark:text-slate-400 text-lg">Acompanhe os disparos recentes e os status de entrega.</p>
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">Histórico de Envios</h1>
+                    <p className="text-gray-500 dark:text-slate-400 text-lg">Acompanhe os disparos recentes e os status de entrega.</p>
+                  </div>
+                  <button 
+                    onClick={downloadCSV}
+                    disabled={history.length === 0 || isLoadingHistory}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
+                  >
+                    <FileSpreadsheet size={20} />
+                    Baixar Relatório (CSV)
+                  </button>
                 </div>
                 <div className="rounded-2xl border border-white/40 bg-white dark:bg-[#0b1324]/60 backdrop-blur-xl p-1 shadow-xl shadow-gray-200/50">
                   <div className="rounded-xl bg-white dark:bg-[#0b1324] overflow-hidden">
@@ -733,7 +711,14 @@ function Index() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                        {history.length === 0 ? (
+                        {isLoadingHistory ? (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">
+                              <Loader2 className="animate-spin w-6 h-6 mx-auto mb-2 text-blue-500" />
+                              Carregando histórico...
+                            </td>
+                          </tr>
+                        ) : history.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">
                               Nenhum envio realizado ainda.
@@ -742,12 +727,15 @@ function Index() {
                         ) : (
                           history.map((item, i) => (
                             <tr key={i} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
-                              <td className="px-6 py-4 font-mono text-xs text-gray-400 group-hover:text-blue-600 transition-colors">{item.id}</td>
-                              <td className="px-6 py-4 font-semibold text-gray-700 dark:text-slate-200">{item.to}</td>
-                              <td className="px-6 py-4 text-gray-500 dark:text-slate-400 max-w-[200px] truncate" title={item.msg}>{item.msg}</td>
-                              <td className="px-6 py-4 text-gray-400 font-medium">{item.date}</td>
+                              <td className="px-6 py-4 font-mono text-xs text-gray-400 group-hover:text-blue-600 transition-colors">{item.id.split('-')[0]}</td>
+                              <td className="px-6 py-4 font-semibold text-gray-700 dark:text-slate-200">{item.to_number}</td>
+                              <td className="px-6 py-4 text-gray-500 dark:text-slate-400 max-w-[200px] truncate" title={item.message}>{item.message}</td>
+                              <td className="px-6 py-4 text-gray-400 font-medium">{new Date(item.created_at).toLocaleString('pt-BR')}</td>
                               <td className="px-6 py-4">
-                                <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset", item.color)}>
+                                <span className={cn(
+                                  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset",
+                                  item.status === 'Enviado' ? "text-green-700 bg-green-100 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400" : "text-red-700 bg-red-100 ring-red-600/20 dark:bg-red-900/30 dark:text-red-400"
+                                )}>
                                   {item.status}
                                 </span>
                               </td>

@@ -72,6 +72,43 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- SCRIPT DE CRIAÇÃO DA TABELA DE HISTÓRICO DE MENSAGENS
+CREATE TABLE IF NOT EXISTS public.message_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    to_number TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.message_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver seu próprio histórico" 
+ON public.message_history FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem inserir em seu próprio histórico" 
+ON public.message_history FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+-- SCRIPT DE SEGURANÇA: SESSÃO ÚNICA
+CREATE OR REPLACE FUNCTION public.enforce_single_session()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM auth.sessions 
+  WHERE user_id = NEW.user_id AND id != NEW.id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_new_login_session ON auth.sessions;
+
+CREATE TRIGGER on_new_login_session
+  AFTER INSERT ON auth.sessions
+  FOR EACH ROW EXECUTE PROCEDURE public.enforce_single_session();
 --- FIM DO CÓDIGO SQL ---
 
 4. Após rodar o SQL, vá em "Project Settings" (ícone de engrenagem) > "API".

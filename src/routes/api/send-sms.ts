@@ -57,9 +57,19 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
       })
     });
 
+    // Insert history on failure
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Erro na API da Zernio:', errorData);
+      
+      await supabaseWithAuth.from('message_history').insert({
+        user_id: user.id,
+        to_number: to,
+        message: cleanMessage,
+        status: 'Falha',
+        error_message: 'Falha ao enviar SMS pela Zernio.'
+      });
+      
       throw new Error('Falha ao enviar SMS pela Zernio.');
     }
 
@@ -68,9 +78,15 @@ export const sendSmsFn = createServerFn({ method: 'POST' })
     
     if (deductError || !deductResult) {
       console.error('Falha ao deduzir crédito', deductError);
-      // We don't throw error here to not fail the frontend if the SMS was already sent, 
-      // but ideally we should deduct BEFORE sending, or handle rollback.
     }
+
+    // Insert history on success
+    await supabaseWithAuth.from('message_history').insert({
+      user_id: user.id,
+      to_number: to,
+      message: cleanMessage,
+      status: 'Enviado'
+    });
 
     const result = await response.json();
     return { success: true, data: result };

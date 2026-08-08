@@ -81,6 +81,7 @@ function Index() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
+    let channel: any;
     if (activeTab === "history" && session?.user) {
       setIsLoadingHistory(true);
       supabase
@@ -95,13 +96,14 @@ function Index() {
           setIsLoadingHistory(false);
         });
 
-      const channel = supabase.channel('history_channel')
+      channel = supabase.channel('history_channel')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_history', filter: `user_id=eq.${session.user.id}` }, payload => {
           setHistory(prev => [payload.new, ...prev]);
         }).subscribe();
-        
-      return () => { supabase.removeChannel(channel); };
     }
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [activeTab, session]);
 
   const downloadCSV = () => {

@@ -466,6 +466,7 @@ function Index() {
         const data = await sendSmsFn({ data: { to: phone, message, token: session.access_token } });
         if (!data.success) throw new Error("Falha ao enviar SMS");
         
+        setBalance((prev) => (prev !== null ? prev - 1 : prev)); // Atualização visual em tempo real
         toast.success(scheduleDate ? `SMS agendado para ${new Date(scheduleDate).toLocaleString()}` : "SMS enviado com sucesso!");
         
         setPhone("");
@@ -491,6 +492,7 @@ function Index() {
             const data = await sendSmsFn({ data: { to: num, message, token: session.access_token } });
             if (data.success) {
               successCount++;
+              setBalance((prev) => (prev !== null ? prev - 1 : prev)); // Atualização visual instantânea
             } else {
               failedCount++;
             }
